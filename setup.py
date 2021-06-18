@@ -7,7 +7,8 @@ requires = [
     'google-auth-httplib2',
     'google-auth-oauthlib',
     'python-redmine',
-    'python-otrs'
+    'python-otrs',
+    'importlib_metadata;python_version<"3.8"'
 ]
 
 setup(
@@ -27,6 +28,7 @@ setup(
     packages=['telegram_bot'] + find_packages(),
     entry_points={'console_scripts': [
         'work_assistant_bot = telegram_bot.bot:main',
+        'create_unix_service = telegram_bot.create_unix_service:main'
     ]},
     install_requires=requires,
 )
