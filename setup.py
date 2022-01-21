@@ -20,6 +20,13 @@ setup(
     author='atronah',
     author_email='atronah.ds@gmail.com',
     keywords='python telegram bot gmail otrs redmine',
-    packages=find_packages(),
+    # using a package folder with the different name than the package
+    # for academic purposes (as example)
+    package_dir={'': 'src'},
+    # manual specifying package which is in folder with different name
+    packages=['telegram_bot'] + find_packages(),
+    entry_points={'console_scripts': [
+        'work_assistant_bot = telegram_bot.bot:main',
+    ]},
     install_requires=requires,
 )
