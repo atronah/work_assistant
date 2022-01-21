@@ -21,7 +21,7 @@ def main():
         sys.exit(1)
     
     package_info = metadata('work_assistant')
-    working_directory = os.path.abspath('.')
+    working_directory = os.path.dirname(sys.argv[0])
     
     with open('tmp.service', 'w') as srvc:
         srvc.write(os.linesep.join([
@@ -31,7 +31,7 @@ def main():
             "[Service]",
             f"User={user_name}",
             f"WorkingDirectory={working_directory}",
-            f"ExecStart=/usr/bin/env bash -c 'cd {working_directory}/ && source venv/bin/activate && work_assistant_bot'",
+            f"ExecStart=/usr/bin/env bash -c 'cd {working_directory}/ && source ./activate && ./work_assistant_bot'",
             "Restart=always",
             "",
             "[Install]",
