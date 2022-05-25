@@ -34,3 +34,13 @@ just copy source into some directory, change to that directory by `cd <my_dir>` 
 - check status by command `sudo systemctl start work_assistant_bot`
 - stop service by command `sudo systemctl stop work_assistant_bot`
 - enable service on every reboot `sudo systemctl enable work_assistant_bot`
+
+### troubleshooting with service
+
+If starting service is failed, try to reset security context of created `.service` file by command bellow:
+
+```bash
+sudo restorecon -v /etc/systemd/system/work_assistant_bot.service
+```
+
+It reset security context to `systemd_unit_file_t`, which is allowed to read for `systemd` daemon.
