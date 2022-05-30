@@ -5,6 +5,7 @@ import collections.abc
 import os
 import re
 from typing import Dict, Any
+import traceback
 
 from google_auth_httplib2 import Request
 from googleapiclient.discovery import build, Resource
@@ -362,7 +363,7 @@ def otrs(update, context):
                         message += md2_prepare(f' - {created} ({from_user}): {subject}\n')
                 message += '\n'
             except Exception as e:
-                message += md2_prepare(f'#{i}: {e}')
+                message += md2_prepare(f'#{i}: {e} {traceback.format_exc()}')
         update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN_V2)
     else:
         otrs_auth(update, context)
