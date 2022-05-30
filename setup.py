@@ -7,7 +7,7 @@ requires = [
     'google-auth-httplib2',
     'google-auth-oauthlib',
     'python-redmine',
-    'python-otrs'
+    'python-otrs @ git+https://github.com/ewsterrenburg/python-otrs.git@4d634a7c8ca08ab04583c29997c75bf2550bdc2a'
 ]
 
 setup(
@@ -28,5 +28,8 @@ setup(
     entry_points={'console_scripts': [
         'work_assistant_bot = telegram_bot.bot:main',
     ]},
+    dependency_links=[
+        'git+https://github.com/ewsterrenburg/python-otrs.git@master#egg=python-otrs-0'
+    ],
     install_requires=requires,
 )
