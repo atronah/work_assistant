@@ -79,11 +79,11 @@ def recursive_update(target_dict, update_dict):
     return target_dict
 
 
-if os.path.exists('conf.yml'):
-    with open('conf.yml', 'rt') as conf:
+if os.path.exists('conf.yaml'):
+    with open('conf.yaml', 'rt') as conf:
         recursive_update(settings, yaml.safe_load(conf))
 else:
-    with open('conf.yml', 'wt') as conf:
+    with open('conf.yaml', 'wt') as conf:
         yaml.dump(settings, conf)
 
 
@@ -91,7 +91,7 @@ logging.config.dictConfig(settings['logging'])
 
 
 if not settings['access']['token']:
-    logging.error('Empty bot token in conf.yml (`access/token`)')
+    logging.error('Empty bot token in conf.yaml (`access/token`)')
     sys.exit(1)
 
 

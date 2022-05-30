@@ -1,6 +1,7 @@
 venv
 .idea
 *.yml
+*.yaml
 *.log
 *.json
 *.egg-info
