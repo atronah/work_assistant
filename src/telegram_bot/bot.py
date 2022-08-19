@@ -387,7 +387,7 @@ def error_handler(update: Update, context: CallbackContext):
 
 
 def test(update: Update, context: CallbackContext):
-    update.message.reply_markdown_v2('**Bold by double asterisc**, _Italic_, ~Strocked~')
+    update.message.reply_markdown_v2('*Bold by single asterisc*, _Italic_, ~Strikethrough~ [link](https://github.com/atronah/work_assistant)')
 
 
 def main():
