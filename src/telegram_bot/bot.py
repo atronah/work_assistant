@@ -386,6 +386,10 @@ def error_handler(update: Update, context: CallbackContext):
     raise context.error
 
 
+def test(update: Update, context: CallbackContext):
+    update.message.reply_markdown_v2('**Bold by double asterisc**, _Italic_, ~Strocked~')
+
+
 def main():
     data_storage = PicklePersistence('bot.data')
     updater = Updater(token=settings['access']['token'],
@@ -401,6 +405,7 @@ def main():
     dispatcher.add_handler(CommandHandler('otrs', otrs))
     dispatcher.add_handler(CommandHandler('otrs_auth', otrs_auth))
     dispatcher.add_handler(CommandHandler('help', help))
+    dispatcher.add_handler(CommandHandler('test', test))
     dispatcher.add_handler(CallbackQueryHandler(callbacks_handler))
 
     dispatcher.add_handler(MessageHandler(Filters.all & ~Filters.status_update, user_message))
