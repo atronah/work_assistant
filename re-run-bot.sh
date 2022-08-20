@@ -14,5 +14,6 @@ pip3 install .
 
 sudo systemctl stop work_assistant_bot
 sudo systemctl start work_assistant_bot
+sudo systemctl status work_assistant_bot
 
 popd
