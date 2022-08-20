@@ -6,6 +6,7 @@
 *.egg-info
 *.bak
 *.data
+*.pyc
 .DS_Store
 .python-version
 venv
