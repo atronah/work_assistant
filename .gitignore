@@ -1,4 +1,3 @@
-venv
 .idea
 *.yml
 *.yaml
@@ -9,3 +8,7 @@ venv
 *.data
 .DS_Store
 .python-version
+venv
+venv/**
+./venv
+.venv/**
