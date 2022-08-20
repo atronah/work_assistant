@@ -12,7 +12,7 @@ source ./venv/bin/activate
 pip3 install --upgrade pip setuptools
 pip3 install .
 
-sudo systemctl stop work_assistant_bot
-sudo systemctl start work_assistant_bot
+systemctl stop work_assistant_bot
+systemctl start work_assistant_bot
 
 popd
