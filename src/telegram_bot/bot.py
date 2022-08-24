@@ -412,7 +412,13 @@ def error_handler(update: Update, context: CallbackContext):
 
 
 def test(update: Update, context: CallbackContext):
-    update.message.reply_document('*Bold by single asterisc*, _Italic_, ~Strikethrough~ [link](https://github.com/atronah/work_assistant)', caption='here you are', filename='answer.txt')
+    import tempfile
+    with tempfile.TemporaryFile() as tf:
+        tf.write('''
+ Hello
+world
+!''')
+        update.message.reply_document(tf, caption='here you are', filename='answer.txt')
 
 
 def main():
