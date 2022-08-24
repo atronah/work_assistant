@@ -418,6 +418,7 @@ def test(update: Update, context: CallbackContext):
  Hello
 world
 !''')
+        tf.seek(0)
         update.message.reply_document(tf, caption='here you are', filename='answer.txt')
 
 
