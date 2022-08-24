@@ -414,7 +414,7 @@ def error_handler(update: Update, context: CallbackContext):
 def test(update: Update, context: CallbackContext):
     import tempfile
     with tempfile.TemporaryFile() as tf:
-        tf.write('''
+        tf.write(b'''
  Hello
 world
 !''')
