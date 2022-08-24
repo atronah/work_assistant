@@ -323,9 +323,7 @@ def otrs_auth(update, context):
     update.effective_user.send_message(context.user_data['awaiting_data'][0][1])
 
 
-def otrs(update, context):
-    # type: (Update, CallbackContext) -> None
-
+def get_otrs_client(context):
     from otrs.ticket.template import GenericTicketConnectorSOAP
     from otrs.client import GenericInterfaceClient
     from otrs.ticket.objects import Ticket, Article, DynamicField, Attachment
@@ -335,35 +333,62 @@ def otrs(update, context):
     otrs_username = otrs_settings.get('username', None)
     otrs_password = otrs_settings.get('password', None)
     webservice_name = 'GenericTicketConnectorSOAP'
-
+    
     if otrs_address and otrs_username and otrs_password:
         client = GenericInterfaceClient(otrs_address, tc=GenericTicketConnectorSOAP(webservice_name))
         client.tc.SessionCreate(user_login=otrs_username, password=otrs_password)
+        return client
+        
+    return None 
+    
+    
 
+def otrs_tickets_info(otrs_client, ticket_number_list):
+    result = {} 
+    for ticket_number in ticket_number_list:
+        info = result.setdefault(ticket_number, {})
+        try:
+            ticket = otrs_client.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
+            info['title'] = ticket.attrs.get('Title', '-')
+                info['state'] = ticket.attrs.get('State', '-')
+                plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
+                info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
+                
+                for article in ticket.articles():
+                    info.setdefault('articles', []).append({
+                        'subject': article.attrs.get('Subject', '-'),
+                        'type': article.attrs.get('ArticleType'),
+                        'created': article.attrs.get('Created', '-'),
+                        'from_user': article.attrs.get('FromRealname', '-')
+                        })
+        except Exception as e:
+            info['exception'] = e
+            info['traceback'] = traceback.format_exc()
+    return result
+ 
+                        
+def otrs(update, context):
+    # type: (Update, CallbackContext) -> None
+
+    otrs_client = get_otrs_client(context)
+
+    if otrs_client:
         issues = [int(i) for i in ','.join(context.args).split(',') if i.isdigit()]
         message = ''
-        for i in issues:
-            try:
-                ticket = client.tc.TicketGet(i, get_articles=True, get_dynamic_fields=True, get_attachments=False)
-                title = ticket.attrs.get('Title', '-')
-                state = ticket.attrs.get('State', '-')
-                plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
-                plan_time = int(plan_time_str) if plan_time_str is not None else None
-                formatted_time = format_time(m=plan_time)
-                message += '**' + md2_prepare(f'#{i}: {title}') + '**\n'
-                message += md2_prepare(f'[{state}] ({formatted_time})\n')
-                for article in ticket.articles():
-                    subject = article.attrs.get('Subject', '-')
+        for num, info in otrs_tickets_info(otrs_client, issues).items():
+            if not info.get('exception'):
+                message += '*' + md2_prepare(f"#{num}: {info['title']}") + '*\n'
+                formatted_time = format_time(m=info['plan_time'])
+                message += md2_prepare(f"[{info['state']}] ({formatted_time})\n")
+                for article in info.get('articles', []):
                     # I use subject template `(Ф:0+30) comment`
                     # for adding internal note/article about spent time
-                    if article.attrs.get('ArticleType') == 'note-internal' \
-                            and subject.startswith('('):
-                        created = article.attrs.get('Created', '-')
-                        from_user = article.attrs.get('FromRealname', '-')
-                        message += md2_prepare(f' - {created} ({from_user}): {subject}\n')
+                    if article.get('type') == 'note-internal' \
+                        and article.get('subject', '').startswith('('):
+                        message += md2_prepare(f"- {article['created']} ({article['from_user']}): {article['subject']}\n")
                 message += '\n'
-            except Exception as e:
-                message += md2_prepare(f'#{i}: {e} {traceback.format_exc()}')
+            else:
+                message += md2_prepare(f"#{num}: {info.get('exception')} {info.get('traceback')}")
         update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN_V2)
     else:
         otrs_auth(update, context)
