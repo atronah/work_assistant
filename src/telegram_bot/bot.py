@@ -350,12 +350,12 @@ def otrs_tickets_info(otrs_client, ticket_number_list):
         try:
             ticket = otrs_client.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
             info['title'] = ticket.attrs.get('Title', '-')
-                info['state'] = ticket.attrs.get('State', '-')
-                plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
-                info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
+            info['state'] = ticket.attrs.get('State', '-')
+            plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
+            info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
                 
-                for article in ticket.articles():
-                    info.setdefault('articles', []).append({
+            for article in ticket.articles():
+                info.setdefault('articles', []).append({
                         'subject': article.attrs.get('Subject', '-'),
                         'type': article.attrs.get('ArticleType'),
                         'created': article.attrs.get('Created', '-'),
