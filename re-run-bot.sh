@@ -8,6 +8,9 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
 
+git reset --hard HEAD
+git pull
+
 source ./venv/bin/activate
 pip3 install --upgrade pip setuptools wheel
 pip3 install .
