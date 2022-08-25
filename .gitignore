@@ -1,4 +1,3 @@
-.idea
 *.yml
 *.yaml
 *.log
@@ -9,8 +8,6 @@
 *.pyc
 .DS_Store
 .python-version
-venv
-venv/**
-./venv
-.venv/**
-build/**
+/.idea
+/venv
+/build
