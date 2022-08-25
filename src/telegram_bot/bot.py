@@ -388,7 +388,16 @@ def otrs(update, context):
                         message += md2_prepare(f"- {article['created']} ({article['from_user']}): {article['subject']}\n")
                 message += '\n'
             else:
-                message += md2_prepare(f"#{num}: {info.get('exception')} {info.get('traceback')}")
+                caption = f"Exception for #{num}:\n{info.get('exception')}"
+                trace_log = info.get('traceback')
+                if trace_log:
+                    import tempfile
+                    with tempfile.TemporaryFile() as tf:
+                        tf.write(trace_log.encode('utf-8'))
+                        tf.seek(0)
+                        update.message.reply_document(tf, caption=caption, filename='traceback.txt')
+                else: 
+                    update.message.reply_text(caption)
         update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN_V2)
     else:
         otrs_auth(update, context)
