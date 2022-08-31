@@ -428,8 +428,8 @@ def test(update: Update, context: CallbackContext):
         from pprint import pformat
         import tempfile
         
-        otrs_client = get_otrs_client(context)
-        info = otrs_tickets_info(otrs_client, [otrs_num])
+        otrs_client = get_otrs_client(context) 
+        info = otrs_tickets_info(otrs_client, list(otrs_num))
         with tempfile.TemporaryFile() as f:
             f.write(pformat(info).encode('utf-8'))
             f.seek(0)
