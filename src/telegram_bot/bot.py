@@ -18,6 +18,7 @@ import logging, logging.config
 import sys
 import threading
 from google_auth_oauthlib.flow import Flow
+from urllib.parse import urljoin
 
 # default settings
 settings: Dict[str, Any] = {
@@ -337,9 +338,9 @@ def get_otrs_client(context):
     if otrs_address and otrs_username and otrs_password:
         client = GenericInterfaceClient(otrs_address, tc=GenericTicketConnectorSOAP(webservice_name))
         client.tc.SessionCreate(user_login=otrs_username, password=otrs_password)
-        return client
+        return client, otrs_address
         
-    return None 
+    return None, None
     
     
 
@@ -372,14 +373,15 @@ def otrs_tickets_info(otrs_client, ticket_number_list):
 def otrs(update, context):
     # type: (Update, CallbackContext) -> None
 
-    otrs_client = get_otrs_client(context)
-
+    otrs_client, otrs_address = get_otrs_client(context)
     if otrs_client:
         issues = [int(i) for i in ','.join(context.args).split(',') if i.isdigit()]
         message = ''
         for num, info in otrs_tickets_info(otrs_client, issues).items():
             if not info.get('exception'):
-                message += '*' + md2_prepare(f"#{num}: {info['title']}") + '*\n'
+                issue_link = urljoin(otrs_address, f'otrs/index.pl?Action=AgentTicketZoom;TicketID={num}')
+                issue_name = md2_prepare(f"#{num}: {info['title']}")
+                message += f'[{issue_name}]({issue_link})\n'
                 formatted_time = format_time(m=info['plan_time'])
                 message += md2_prepare(f"[{info['state']}] ({formatted_time})\n")
                 for article in info.get('articles', []):
@@ -428,7 +430,7 @@ def test(update: Update, context: CallbackContext):
         from pprint import pformat
         import tempfile
         
-        otrs_client = get_otrs_client(context) 
+        otrs_client, _ = get_otrs_client(context)
         info = otrs_tickets_info(otrs_client, list(otrs_num))
         with tempfile.TemporaryFile() as f:
             f.write(pformat(info).encode('utf-8'))
