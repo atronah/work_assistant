@@ -361,7 +361,7 @@ def otrs_tickets_info(otrs_client, ticket_number_list):
                         'type': article.attrs.get('ArticleType'),
                         'created': article.attrs.get('Created', '-'),
                         'from_user': article.attrs.get('FromRealname', '-'),
-                        'attrs' = article.attrs
+                        'attrs': article.attrs
                         })
         except Exception as e:
             info['exception'] = e
