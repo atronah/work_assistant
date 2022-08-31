@@ -353,13 +353,15 @@ def otrs_tickets_info(otrs_client, ticket_number_list):
             info['state'] = ticket.attrs.get('State', '-')
             plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
             info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
+            info['attrs'] = ticket.attrs
                 
             for article in ticket.articles():
                 info.setdefault('articles', []).append({
                         'subject': article.attrs.get('Subject', '-'),
                         'type': article.attrs.get('ArticleType'),
                         'created': article.attrs.get('Created', '-'),
-                        'from_user': article.attrs.get('FromRealname', '-')
+                        'from_user': article.attrs.get('FromRealname', '-'),
+                        'attrs' = article.attrs
                         })
         except Exception as e:
             info['exception'] = e
@@ -421,14 +423,18 @@ def error_handler(update: Update, context: CallbackContext):
 
 
 def test(update: Update, context: CallbackContext):
-    import tempfile
-    with tempfile.TemporaryFile() as tf:
-        tf.write(b'''
- Hello
-world
-!''')
-        tf.seek(0)
-        update.message.reply_document(tf, caption='here you are', filename='answer.txt')
+    otrs_num = context.args
+    if otrs_num:
+        from pprint import pformat
+        import tempfile
+        
+        otrs_client = get_otrs_client(context)
+        info = otrs_tickets_info(otrs_client, issues)
+        with tempfile.TemporaryFile() as f:
+            f.write(pformat(info).encode('utf-8'))
+            f.seek(0)
+            update.message.reply_document(f, filename = 'info.txt')
+        
 
 
 def main():
