@@ -424,16 +424,18 @@ def error_handler(update: Update, context: CallbackContext):
 
 def test(update: Update, context: CallbackContext):
     otrs_num = context.args
-    if otrs_num:
-        from pprint import pformat
-        import tempfile
+    if not otrs_num.isdigit():
+        update.message.reply_text(f'incorrect arg: "{otrs_num}"')
         
-        otrs_client, _ = get_otrs_client(context)
-        info = otrs_ticket_info(otrs_client, otrs_num)
-        with tempfile.TemporaryFile() as f:
-            f.write(pformat(info).encode('utf-8'))
-            f.seek(0)
-            update.message.reply_document(f, filename = 'info.txt')
+    from pprint import pformat
+    import tempfile
+        
+    otrs_client, _ = get_otrs_client(context)
+    info = otrs_ticket_info(otrs_client, otrs_num)
+    with tempfile.TemporaryFile() as f:
+        f.write(pformat(info).encode('utf-8'))
+        f.seek(0)
+        update.message.reply_document(f, filename = 'info.txt')
 
 
 def process_attachment(update: Update, context: CallbackContext):
