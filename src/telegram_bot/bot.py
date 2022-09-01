@@ -451,7 +451,19 @@ def process_attachment(update: Update, context: CallbackContext):
     downloaded_path = context.bot.getFile(attachment).download()
     if os.path.isfile(downloaded_path):
         try:
+            import cs
+            
             update.message.reply_text(f'File saved as {downloaded_path}')
+            
+            task_number_pattern = re.compile(r'(\d+)\..*')
+            with open(filename, newline='', encoding='utf-8') as f:
+                cr = csv.reader(f)
+                tasks = {}
+                for row in cr:
+                    date, start, end, duration, client,task, comment, tags = row
+                    match = task_number_pattern(task)
+                    if match:
+                        task_number = match.group(1)
         finally:
             os.remove(downloaded_path)
 
