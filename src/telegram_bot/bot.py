@@ -448,7 +448,7 @@ def process_attachment(update: Update, context: CallbackContext):
                 
     attachment = update.message.document
     downloaded_path = context.bot.getFile(attachment).download()
-    if os.path.isfile(downloaded_path)
+    if os.path.isfile(downloaded_path):
         try:
             update.message.reply_text(f'File saved as {downloaded_path}')
         finally:
