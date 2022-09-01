@@ -483,18 +483,26 @@ def error_handler(update: Update, context: CallbackContext):
 def test(update: Update, context: CallbackContext):
     from pprint import pformat
     import tempfile
- 
-    for otrs_num in ','.join(context.args).split(','):
+
+    for ticket_number in ','.join(context.args).split(','):
         if not otrs_num.isdigit():
             update.message.reply_text(f'incorrect arg: "{otrs_num}"')
             continue
-        
-        otrs_client, _ = get_otrs_client(context)
-        info = otrs_ticket_info(otrs_client, int(otrs_num))
+
         with tempfile.TemporaryFile() as f:
-            f.write(pformat(info).encode('utf-8'))
+            otrs_client, otrs_address = get_otrs(update, context)
+            if otrs_client:
+                info = otrs_ticket_info(otrs_client, otrs_address, int(ticket_number))
+                f.write(pformat(info).encode('utf-8'))
+                f.seek(0)
+
+            redmine_client, redmine_address = get_redmine(update, context)
+            if redmine_client:
+                info = redmine_ticket_info(redmine_client, redmine_address, int(ticket_number))
+                f.write(pformat(info).encode('utf-8'))
+
             f.seek(0)
-            update.message.reply_document(f, filename = f'{otrs_num}.txt')
+            update.message.reply_document(f, filename=f'{ticket_number}.txt')
 
 
 def process_attachment(update: Update, context: CallbackContext):
