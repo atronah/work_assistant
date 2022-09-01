@@ -431,7 +431,7 @@ def test(update: Update, context: CallbackContext):
     import tempfile
         
     otrs_client, _ = get_otrs_client(context)
-    info = otrs_ticket_info(otrs_client, otrs_num)
+    info = otrs_ticket_info(otrs_client, int(otrs_num))
     with tempfile.TemporaryFile() as f:
         f.write(pformat(info).encode('utf-8'))
         f.seek(0)
