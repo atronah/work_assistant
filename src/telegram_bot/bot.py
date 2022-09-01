@@ -436,7 +436,23 @@ def test(update: Update, context: CallbackContext):
             f.write(pformat(info).encode('utf-8'))
             f.seek(0)
             update.message.reply_document(f, filename = 'info.txt')
-        
+
+
+def process_attachment(update: Update, context: CallbackContext):
+    user = update.effective_user
+    if user.id not in settings['access']['god_id_list']:
+        update.message.reply_text(f'Your user ID is {user.id}')
+        username = f'{user.username} ({user.name}, {user.full_name})'
+        update.message.reply_text(f'{username}, I cannot proccess that file for you, you have no permissions (your ID is {user.id})')
+        return 
+                
+    attachment = update.message.document
+    downloaded_path = context.bot.getFile(attachment).download()
+    if os.path.isfile(downloaded_path)
+        try:
+            update.message.reply_text(f'File saved as {downloaded_path}')
+        finally:
+            os.remove(downloaded_path)
 
 
 def main():
@@ -456,6 +472,7 @@ def main():
     dispatcher.add_handler(CommandHandler('help', help))
     dispatcher.add_handler(CommandHandler('test', test))
     dispatcher.add_handler(CallbackQueryHandler(callbacks_handler))
+    dispatcher.add_handler(MessageHandler(Filters.attachment, process_attachment))
 
     dispatcher.add_handler(MessageHandler(Filters.all & ~Filters.status_update, user_message))
 
