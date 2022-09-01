@@ -371,7 +371,7 @@ def otrs_auth(update, context):
     update.effective_user.send_message(context.user_data['awaiting_data'][0][1])
 
 
-def get_otrs_client(context):
+def get_otrs(update, context):
     from otrs.ticket.template import GenericTicketConnectorSOAP
     from otrs.client import GenericInterfaceClient
     from otrs.ticket.objects import Ticket, Article, DynamicField, Attachment
@@ -381,60 +381,70 @@ def get_otrs_client(context):
     otrs_username = otrs_settings.get('username', None)
     otrs_password = otrs_settings.get('password', None)
     webservice_name = 'GenericTicketConnectorSOAP'
-    
+
     if otrs_address and otrs_username and otrs_password:
         client = GenericInterfaceClient(otrs_address, tc=GenericTicketConnectorSOAP(webservice_name))
         client.tc.SessionCreate(user_login=otrs_username, password=otrs_password)
         return client, otrs_address
-        
+
     return None, None
 
 
-def otrs_ticket_info(otrs_client, ticket_number):
+def otrs_ticket_info(otrs_client, otrs_address, ticket_number):
     info = {}
-    try:
-        ticket = otrs_client.tc.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
-        info['title'] = ticket.attrs.get('Title', '-')
-        info['state'] = ticket.attrs.get('State', '-')
-        plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
-        info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
-        info['attrs'] = ticket.attrs
-                
-        for article in ticket.articles():
-            info.setdefault('articles', []).append({
-                    'subject':article.attrs.get('Subject', '-'),
-                    'type': article.attrs.get('ArticleType'),
-                    'created': article.attrs.get('Created', '-'),
-                    'from_user': article.attrs.get('FromRealname', '-'),
-                    'attrs': article.attrs
-                    })
-    except Exception as e:
-        info['exception'] = e
-        info['traceback'] = traceback.format_exc()
+
+    if otrs_client:
+        try:
+            ticket = otrs_client.tc.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
+            info['id'] = ticket_number
+            info['title'] = ticket.attrs.get('Title', '-')
+            info['status'] = ticket.attrs.get('State', '-')
+            info['assigned_to'] = ticket.attrs.get('Owner', '-')
+            info['comment'] = ticket.attrs.get('Owner', '-')
+            plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
+            info['total_time'] = int(plan_time_str) if plan_time_str is not None else None
+            info['link'] = urljoin(otrs_address, f'otrs/index.pl?Action=AgentTicketZoom;TicketID={ticket_number}')
+            info['attrs'] = ticket.attrs
+
+            for article in ticket.articles():
+                info.setdefault('notes', []).append({
+                        'subject':article.attrs.get('Subject', '-'),
+                        'type': article.attrs.get('ArticleType'),
+                        'created': article.attrs.get('Created', '-'),
+                        'spent_on': None,
+                        'from_user': article.attrs.get('FromRealname', '-'),
+                        'hours': None,
+                        'attrs': article.attrs
+                        })
+        except Exception as e:
+            info['exception'] = e
+            info['traceback'] = traceback.format_exc()
+
     return info
- 
-                        
+
+
 def otrs(update, context):
     # type: (Update, CallbackContext) -> None
 
-    otrs_client, otrs_address = get_otrs_client(context)
+    otrs_client, otrs_address = get_otrs(update, context)
+
     if otrs_client:
         issues = [int(i) for i in ','.join(context.args).split(',') if i.isdigit()]
         message = ''
         for num in issues:
-            info = otrs_ticket_info(otrs_client, num)
+            info = otrs_ticket_info(otrs_client, otrs_address, num)
             if not info.get('exception'):
-                issue_link = urljoin(otrs_address, f'otrs/index.pl?Action=AgentTicketZoom;TicketID={num}')
                 issue_name = md2_prepare(f"#{num}: {info['title']}")
-                message += f'[{issue_name}]({issue_link})\n'
-                formatted_time = format_time(m=info['plan_time'])
-                message += md2_prepare(f"[{info['state']}] ({formatted_time})\n")
-                for article in info.get('articles', []):
+                message += f'[{issue_name}]({info["link"]})\n'
+                update.message.reply_text(f'{info["link"]}')
+                formatted_time = format_time(m=info['total_time'])
+                message += md2_prepare(f"[{info['status']}] ({formatted_time})\n")
+                for note in info.get('notes', []):
                     # I use subject template `(Ф:0+30) comment`
                     # for adding internal note/article about spent time
-                    if article.get('type') == 'note-internal' \
-                        and article.get('subject', '').startswith('('):
-                        message += md2_prepare(f"- {article['created']} ({article['from_user']}): {article['subject']}\n")
+                    if note.get('type') == 'note-internal' \
+                        and note.get('subject', '').startswith('('):
+                        message += md2_prepare(f"- {note['created']} ({note['from_user']}): {note['subject']}\n")
                 message += '\n'
             else:
                 caption = f"Exception for #{num}:\n{info.get('exception')}"
@@ -445,11 +455,12 @@ def otrs(update, context):
                         tf.write(trace_log.encode('utf-8'))
                         tf.seek(0)
                         update.message.reply_document(tf, caption=caption, filename='traceback.txt')
-                else: 
+                else:
                     update.message.reply_text(caption)
-        update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN_V2)
+        update.message.reply_text(message or 'No data', parse_mode=ParseMode.MARKDOWN_V2)
     else:
         otrs_auth(update, context)
+
 
 
 def help(update: Update, context: CallbackContext):
