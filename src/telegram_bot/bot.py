@@ -531,6 +531,11 @@ def process_attachment(update: Update, context: CallbackContext):
                     date, start, end, duration, client, task, comment, tags = row
                     if date == 'day':
                         continue
+                        
+                    task_key = task
+                    otrs_info = {}
+                    redmine_info = {} 
+                    
                     match = task_number_pattern.match(task)
                     if match:
                         task_key = match.group(1)
@@ -538,10 +543,7 @@ def process_attachment(update: Update, context: CallbackContext):
                             otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
                         if redmine_client and int(task_key) > 100000:
                             redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
-                    else:
-                        task_key = task
-                        otrs_info = {}
-                        redmine_info = {}
+                        
 
                     task_info = tasks.setdefault(client, {}).setdefault(task_key, {})
                     task_info['otrs_info'] = otrs_info
@@ -580,6 +582,7 @@ def process_attachment(update: Update, context: CallbackContext):
                             else:
                                 f.write(f' {comment}'.encode('utf-8'))
                             f.write(f'\n'.encode('utf-8'))
+                        
                         otrs_info = task_info['otrs_info']
                         ticket_id = otrs_info.get('id', None)
                         exception = otrs_info.get('exception', None)
@@ -588,7 +591,7 @@ def process_attachment(update: Update, context: CallbackContext):
                             ticket_status = otrs_info.get('status', None)
                             ticket_link= otrs_info.get('link', None)
                             ticket_title = otrs_info.get('title', '')
-                            ticket_total_time = redmine_info.get('total_time', '')
+                            ticket_total_time = redmine_info.get('total_time', None)
                             if ticket_total_time:
                                 ticket_total_time = format_time(m=ticket_total_time)
                             ticket_notes = otrs_info.get('notes', [])
@@ -607,9 +610,10 @@ def process_attachment(update: Update, context: CallbackContext):
                         exception = redmine_info.get('exception', None)
                         if ticket_id or exception:
                             f.write(f'- Redmine'.encode('utf-8'))
+                            ticket_status = redmine_info.get('status', None)
                             ticket_link= redmine_info.get('link', None)
                             ticket_title = redmine_info.get('title', '')
-                            ticket_total_time = redmine_info.get('total_time', '')
+                            ticket_total_time = redmine_info.get('total_time', None)
                             if ticket_total_time:
                                 ticket_total_time = format_time(h=ticket_total_time)
                             ticket_notes = redmine_info.get('notes', [])
