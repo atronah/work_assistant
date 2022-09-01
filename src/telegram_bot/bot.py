@@ -423,7 +423,6 @@ def error_handler(update: Update, context: CallbackContext):
 
 
 def test(update: Update, context: CallbackContext):
-    otrs_num = context.args
     from pprint import pformat
     import tempfile
  
