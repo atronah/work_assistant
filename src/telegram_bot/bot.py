@@ -341,33 +341,30 @@ def get_otrs_client(context):
         return client, otrs_address
         
     return None, None
-    
-    
 
-def otrs_tickets_info(otrs_client, ticket_number_list):
-    result = {} 
-    for ticket_number in ticket_number_list:
-        info = result.setdefault(ticket_number, {})
-        try:
-            ticket = otrs_client.tc.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
-            info['title'] = ticket.attrs.get('Title', '-')
-            info['state'] = ticket.attrs.get('State', '-')
-            plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
-            info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
-            info['attrs'] = ticket.attrs
+
+def otrs_ticket_info(otrs_client, ticket_number):
+    info = {}
+    try:
+        ticket = otrs_client.tc.TicketGet(ticket_number, get_articles=True, get_dynamic_fields=True, get_attachments=False)
+        info['title'] = ticket.attrs.get('Title', '-')
+        info['state'] = ticket.attrs.get('State', '-')
+        plan_time_str = ticket.attrs.get('DynamicField_Plantime', None)
+        info['plan_time'] = int(plan_time_str) if plan_time_str is not None else None
+        info['attrs'] = ticket.attrs
                 
-            for article in ticket.articles():
-                info.setdefault('articles', []).append({
-                        'subject': article.attrs.get('Subject', '-'),
-                        'type': article.attrs.get('ArticleType'),
-                        'created': article.attrs.get('Created', '-'),
-                        'from_user': article.attrs.get('FromRealname', '-'),
-                        'attrs': article.attrs
-                        })
-        except Exception as e:
-            info['exception'] = e
-            info['traceback'] = traceback.format_exc()
-    return result
+        for article in ticket.articles():
+            info.setdefault('articles', []).append({
+                    'subject':article.attrs.get('Subject', '-'),
+                    'type': article.attrs.get('ArticleType'),
+                    'created': article.attrs.get('Created', '-'),
+                    'from_user': article.attrs.get('FromRealname', '-'),
+                    'attrs': article.attrs
+                    })
+    except Exception as e:
+        info['exception'] = e
+        info['traceback'] = traceback.format_exc()
+    return info
  
                         
 def otrs(update, context):
@@ -377,7 +374,8 @@ def otrs(update, context):
     if otrs_client:
         issues = [int(i) for i in ','.join(context.args).split(',') if i.isdigit()]
         message = ''
-        for num, info in otrs_tickets_info(otrs_client, issues).items():
+        for num in issues:
+            info = otrs_ticket_info(otrs_client, num)
             if not info.get('exception'):
                 issue_link = urljoin(otrs_address, f'otrs/index.pl?Action=AgentTicketZoom;TicketID={num}')
                 issue_name = md2_prepare(f"#{num}: {info['title']}")
@@ -431,7 +429,7 @@ def test(update: Update, context: CallbackContext):
         import tempfile
         
         otrs_client, _ = get_otrs_client(context)
-        info = otrs_tickets_info(otrs_client, list(otrs_num))
+        info = otrs_ticket_info(otrs_client, otrs_num)
         with tempfile.TemporaryFile() as f:
             f.write(pformat(info).encode('utf-8'))
             f.seek(0)
