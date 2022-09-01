@@ -265,32 +265,79 @@ def redmine_auth(update, context):
     update.effective_user.send_message(context.user_data['awaiting_data'][0][1])
 
 
-def redmine(update, context):
-    # type: (Update, CallbackContext) -> None
 
+def get_redmine(update, context):
     from redminelib import Redmine
 
     redmine_settings = context.user_data.get('redmine', {})
     redmine_address = redmine_settings.get('address', None)
     redmine_auth_key = redmine_settings.get('auth_key', None)
 
+    redmine_client = None
     if redmine_address and redmine_auth_key:
-        r = Redmine(redmine_address, key=redmine_auth_key)
-        issues = ','.join(context.args).split(',')
+        redmine_client = Redmine(redmine_address, key=redmine_auth_key)
+        return redmine_client, redmine_address
+
+    return None, redmine_address
+
+
+def redmine_ticket_info(redmine_client, redmine_address, ticket_number):
+    info = {}
+    try:
+        ticket_data = redmine_client.issue.get(ticket_number)
+        info['id'] = ticket_number
+        info['title'] = getattr(ticket_data, "subject", "-")
+        info['status'] = getattr(ticket_data, "status", "-")
+        info['assigned_to'] = getattr(ticket_data, "assigned_to", "-")
+        info['total_time'] = getattr(ticket_data, "total_spent_hours", "-")
+        info['link'] = urljoin(redmine_address, f'issues/{ticket_number}')
+
+        for time_entry in ticket_data.time_entries:
+            info.setdefault('notes', []).append({
+                    'subject':time_entry.comments,
+                    'type': time_entry.activity.name,
+                    'created': time_entry.created_on,
+                    'spent_on': time_entry.spent_on,
+                    'from_user': time_entry.user.name,
+                    'hours': time_entry.hours,
+                    'attrs': []
+                    })
+    except Exception as e:
+        info['exception'] = e
+        info['traceback'] = traceback.format_exc()
+
+    return info
+
+
+def redmine(update, context):
+    # type: (Update, CallbackContext) -> None
+
+    redmine_client, redmine_address = get_redmine(update, context)
+    if redmine_client:
         message = ''
-        for i in issues:
-            try:
-                d = r.issue.get(i)
-                message += '**' + md2_prepare(f'#{i}: {getattr(d, "subject", "-")}') + '**\n'
-                message += md2_prepare(f'[{getattr(d, "status", "-")}]'
-                                       f' {getattr(d, "assigned_to", "-")}'
-                                       f' ({format_time(getattr(d, "total_spent_hours", 0))})\n')
-                for t in d.time_entries:
-                    message += md2_prepare(f' - {t.spent_on} {format_time(t.hours)} {t.user} \n')
+        for ticket_number in ','.join(context.args).split(','):
+            ticket_info = redmine_ticket_info(redmine_client, redmine_address, ticket_number)
+            if not ticket_info.get('exception'):
+                ticket_name = md2_prepare(f'#{ticket_number}: {ticket_info["title"]}')
+                message += f'[{ticket_name}]({ticket_info["link"]})\n'
+                message += md2_prepare(f'[{ticket_info["status"]}]'
+                                       f' {ticket_info["assigned_to"]}'
+                                       f' ({format_time(ticket_info["total_time"])})\n')
+                for ticket_note in ticket_info["notes"]:
+                    message += md2_prepare(f' - {ticket_note["spent_on"]} {format_time(ticket_note["hours"])} {ticket_note["from_user"]} \n')
                 message += '\n'
-            except Exception as e:
-                message += md2_prepare(f'#{i}: {e}\n')
-        update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN_V2)
+            else:
+                caption = f"Exception for #{ticket_number}:\n{ticket_info.get('exception')}"
+                trace_log = ticket_info.get('traceback')
+                if trace_log:
+                    import tempfile
+                    with tempfile.TemporaryFile() as tf:
+                        tf.write(trace_log.encode('utf-8'))
+                        tf.seek(0)
+                        update.message.reply_document(tf, caption=caption, filename='traceback.txt')
+                else:
+                    update.message.reply_text(caption)
+        update.message.reply_text(message or 'No data', parse_mode=ParseMode.MARKDOWN_V2)
     else:
         redmine_auth(update, context)
 
