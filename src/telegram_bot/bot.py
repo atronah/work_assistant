@@ -514,8 +514,8 @@ def process_attachment(update: Update, context: CallbackContext):
         return
 
     attachment = update.message.document
-    downloaded_path = context.bot.getFile(attachment).download()
     if attachment.mime_type == 'text/csv':
+        downloaded_path = context.bot.getFile(attachment).download()
         if os.path.isfile(downloaded_path):
             try:
                 import csv
@@ -630,8 +630,8 @@ def process_attachment(update: Update, context: CallbackContext):
                     update.message.reply_document(f, filename=f'Report.md')
             finally:
                 os.remove(downloaded_path)
-         else:
-            update.message.reply_text(f"I cannot process file with mime type {attachment.mime_type}")
+    else:
+        update.message.reply_text(f"I cannot process file with mime type {attachment.mime_type}")
 
 
 def main():
