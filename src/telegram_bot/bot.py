@@ -436,7 +436,6 @@ def otrs(update, context):
             if not info.get('exception'):
                 issue_name = md2_prepare(f"#{num}: {info['title']}")
                 message += f'[{issue_name}]({info["link"]})\n'
-                update.message.reply_text(f'{info["link"]}')
                 formatted_time = format_time(m=info['total_time'])
                 message += md2_prepare(f"[{info['status']}] ({formatted_time})\n")
                 for note in info.get('notes', []):
