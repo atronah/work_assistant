@@ -665,8 +665,9 @@ def eternity(update: Update, context: CallbackContext):
                         continue
                     task_title = info.get('title')
                     task_link = info.get('link')
+                    link_caption = md2_prepare(f'#{task_id} {task_title}')
                     task_status = info.get('status', None)
-                    message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f' ({task_status})\n')
+                    message += md2_prepare(f'- ') + f'[#{link_caption}]({task_link})' + md2_prepare(f' ({task_status})\n')
                 if message:
                     context.bot.send_message(update.effective_chat.id, message) 
     finally:
