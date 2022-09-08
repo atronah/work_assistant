@@ -440,8 +440,9 @@ def otrs(update, context):
             if not info.get('exception'):
                 issue_name = md2_prepare(f"#{num}: {info['title']}")
                 message += f'[{issue_name}]({info["link"]})\n'
-                formatted_time = format_time(m=info['total_time'])
-                message += md2_prepare(f"[{info['status']}] (Плановое время: {formatted_time})\n")
+                if ('-s' not in context.args):
+                    formatted_time = format_time(m=info['total_time'])
+                    message += md2_prepare(f"[{info['status']}] (Плановое время: {formatted_time})\n")
                 if ('-f' in context.args):
                     for note in info.get('notes', []):
                         # I use subject template `(Ф:0+30) comment`
@@ -449,7 +450,8 @@ def otrs(update, context):
                         if note.get('type') == 'note-internal' \
                                 and note.get('subject', '').startswith('('):
                             message += md2_prepare(f"- {note['created']} ({note['from_user']}): {note['subject']}\n")
-                message += '\n'
+                if ('-s' not in context.args):
+                    message += '\n'
             else:
                 caption = f"Exception for #{num}:\n{info.get('exception')}"
                 trace_log = info.get('traceback')
