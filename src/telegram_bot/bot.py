@@ -9,7 +9,7 @@ import traceback
 
 from google_auth_httplib2 import Request
 from googleapiclient.discovery import build, Resource
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode, Document
 from telegram.ext import Updater, PicklePersistence, CallbackContext, CallbackQueryHandler
 from telegram.ext import CommandHandler, MessageHandler
 from telegram.ext import Filters
@@ -503,21 +503,36 @@ def test(update: Update, context: CallbackContext):
 
             f.seek(0)
             update.message.reply_document(f, filename=f'{ticket_number}.txt')
-            
-            
+
+
 def eternity(update: Update, context: CallbackContext):
-    attachment = context.user_data.get('attachment', None)
-    if not (attachment 
-                and isinstance(attachment, telegram.Document)
-                and attachment.mime_type == 'text/csv'):
+    attachment_info = context.user_data.get('attachment', None)
+
+    if not attachment_info:
         update.message.reply_text('Send me csv file before')
         return
-    
-    downloaded_path = context.bot.getFile(attachment).download()
+
+
+    mime_type = attachment_info.get('mime_type', None)
+    if mime_type != 'text/csv':
+        update.message.reply_text(f"'text/csv' expected, but {mime_type} got")
+        return
+
+    file_id = attachment_info.get('file_id', None)
+    if not file_id:
+        update.message.reply_text('Empty file_id')
+        return
+
+    source_file = context.bot.get_file(file_id)
+    if not source_file:
+        update.message.reply_text("Couldn't get file by its file_id {file_id}")
+        return
+
+    downloaded_path = source_file.download()
     if not os.path.isfile(downloaded_path):
         update.message.reply_text(f"Could't find file {downloaded_path}")
         return
-        
+
     try:
         import csv
 
@@ -532,18 +547,18 @@ def eternity(update: Update, context: CallbackContext):
             if not (header and ','.join(header) == 'day,start time,stop time,duration,hierarchy path,activity name,note,tags'):
                 update.message.reply_text(f"Unsupported csv structurem {header}")
                 return
-            
-            
-                
+
+
+
             for row in cr:
                 date, start, end, duration, client, task, comment, tags = row
                 if date == 'day':
                     continue
-                    
+
                 task_key = task
                 otrs_info = {}
-                redmine_info = {} 
-                
+                redmine_info = {}
+
                 match = task_number_pattern.match(task)
                 if match:
                     task_key = match.group(1)
@@ -551,7 +566,7 @@ def eternity(update: Update, context: CallbackContext):
                         otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
                     if redmine_client and int(task_key) > 100000:
                         redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
-                    
+
 
                 task_info = summary.setdefault(client, {}).setdefault(task_key, {})
                 task_info['otrs_info'] = otrs_info
@@ -563,7 +578,7 @@ def eternity(update: Update, context: CallbackContext):
                     'comment': comment,
                     'tags': tags,
                 }
-        
+
         if 'report' in context.args:
             import tempfile
             with tempfile.TemporaryFile() as f:
@@ -592,7 +607,7 @@ def eternity(update: Update, context: CallbackContext):
                             else:
                                 f.write(f' {comment}'.encode('utf-8'))
                             f.write(f'\n'.encode('utf-8'))
-                        
+
                         otrs_info = task_info['otrs_info']
                         ticket_id = otrs_info.get('id', None)
                         exception = otrs_info.get('exception', None)
@@ -637,21 +652,21 @@ def eternity(update: Update, context: CallbackContext):
                         f.write(f'\n\n\n'.encode('utf-8'))
                 f.seek(0)
                 update.message.reply_document(f, filename=f'Report.md')
-            else:
-                message = ''
-                for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
-                    message += md2_prepare(f'{client}\n')
-                    for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
-                        info = task_info['otrs_info'] or task_info['redmine_info']
-                        task_id = info.get('id')
-                        if not task_id:
-                            continue
-                        task_title = info.get('title')
-                        task_link = info.get('link')
-                        message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f'\n')
+        else:
+            message = ''
+            for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
+                message += md2_prepare(f'{client}\n')
+                for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
+                    info = task_info['otrs_info'] or task_info['redmine_info']
+                    task_id = info.get('id')
+                    if not task_id:
+                        continue
+                    task_title = info.get('title')
+                    task_link = info.get('link')
+                    message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f'\n')
     finally:
         os.remove(downloaded_path)
-    
+
 
 
 def process_attachment(update: Update, context: CallbackContext):
@@ -661,9 +676,14 @@ def process_attachment(update: Update, context: CallbackContext):
         username = f'{user.username} ({user.name}, {user.full_name})'
         update.message.reply_text(f'{username}, I cannot proccess that file for you, you have no permissions (your ID is {user.id})')
         return
-        
-    context.user_data['attachment'] = update.message.effective_attachment
-    context.message.reply_text("Thank's, I'll use it for you later")
+
+    attachment = update.message.effective_attachment
+    context.user_data['attachment'] = {
+        'file_id': attachment.file_id,
+        'mime_type': attachment.mime_type
+    }
+
+    update.message.reply_text("Thank's, I'll use it for you later")
 
 
 def main():
