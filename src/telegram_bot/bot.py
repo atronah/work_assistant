@@ -321,13 +321,15 @@ def redmine(update, context):
             if not ticket_info.get('exception'):
                 ticket_name = md2_prepare(f'#{ticket_number}: {ticket_info["title"]}')
                 message += f'[{ticket_name}]({ticket_info["link"]})\n'
-                message += md2_prepare(f'[{ticket_info["status"]}]'
-                                       f' {ticket_info["assigned_to"]}'
-                                       f' ({format_time(ticket_info["total_time"])})\n')
+                if ('-s' not in context.args):
+                    message += md2_prepare(f'[{ticket_info["status"]}]'
+                                           f' {ticket_info["assigned_to"]}'
+                                           f' ({format_time(ticket_info["total_time"])})\n')
                 if ('-f' in context.args):
                     for ticket_note in ticket_info["notes"]:
                         message += md2_prepare(f' - {ticket_note["spent_on"]} {format_time(ticket_note["hours"])} {ticket_note["from_user"]} \n')
-                message += '\n'
+                if ('-s' not in context.args):
+                    message += '\n'
             else:
                 caption = f"Exception for #{ticket_number}:\n{ticket_info.get('exception')}"
                 trace_log = ticket_info.get('traceback')
