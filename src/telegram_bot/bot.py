@@ -503,6 +503,155 @@ def test(update: Update, context: CallbackContext):
 
             f.seek(0)
             update.message.reply_document(f, filename=f'{ticket_number}.txt')
+            
+            
+def eternity(update: Update, context: CallbackContext):
+    attachment = context.user_data.get('attachment', None)
+    if not (attachment 
+                and isinstance(attachment, telegram.Document)
+                and attachment.mime_type == 'text/csv'):
+        update.message.reply_text('Send me csv file before')
+        return
+    
+    downloaded_path = context.bot.getFile(attachment).download()
+    if not os.path.isfile(downloaded_path):
+        update.message.reply_text(f"Could't find file {downloaded_path}")
+        return
+        
+    try:
+        import csv
+
+        otrs_client, otrs_address = get_otrs(update, context)
+        redmine_client, redmine_address = get_redmine(update, context)
+
+        summary = {}
+        task_number_pattern = re.compile(r'(\d+)\..*')
+        with open(downloaded_path, newline='', encoding='utf-8') as f:
+            cr = csv.reader(f)
+            header = next(cr)
+            if not (header and ','.join(header) == 'day,start time,stop time,duration,hierarchy path,activity name,note,tags'):
+                update.message.reply_text(f"Unsupported csv structurem {header}")
+                return
+            
+            
+                
+            for row in cr:
+                date, start, end, duration, client, task, comment, tags = row
+                if date == 'day':
+                    continue
+                    
+                task_key = task
+                otrs_info = {}
+                redmine_info = {} 
+                
+                match = task_number_pattern.match(task)
+                if match:
+                    task_key = match.group(1)
+                    if otrs_client and int(task_key) < 99999:
+                        otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
+                    if redmine_client and int(task_key) > 100000:
+                        redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
+                    
+
+                task_info = summary.setdefault(client, {}).setdefault(task_key, {})
+                task_info['otrs_info'] = otrs_info
+                task_info['redmine_info'] = redmine_info
+                eternity_info = task_info.setdefault('eternity_info', {})
+
+                eternity_info[f'{date} {start} - {end}'] = {
+                    'duration': duration,
+                    'comment': comment,
+                    'tags': tags,
+                }
+        
+        if 'report' in context.args:
+            import tempfile
+            with tempfile.TemporaryFile() as f:
+                f.write(f'# Report from {update.message.document.file_name}\n\n'.encode('utf-8'))
+
+                for client in sorted(summary.keys()):
+                    f.write(f'## {client or "-"}\n\n'.encode('utf-8'))
+
+                    for task_key in sorted(summary[client].keys()):
+                        task_info = summary[client][task_key]
+                        f.write(f'### {task_key}\n\n'.encode('utf-8'))
+
+                        eternity_info = task_info['eternity_info']
+                        f.write(f'- Eternity\n'.encode('utf-8'))
+                        for time_key in sorted(eternity_info.keys()):
+                            comment = eternity_info[time_key]['comment']
+                            tags = eternity_info[time_key]['tags']
+                            duration = eternity_info[time_key]['duration']
+                            f.write(f'    - {time_key} ({duration}, {tags}):'.encode('utf-8'))
+                            if '\n' in comment:
+                                f.write(f'\n'.encode('utf-8'))
+                                f.write(f'        ```'.encode('utf-8'))
+                                for line in comment.split('\n'):
+                                    f.write(f'        {line}\n'.encode('utf-8'))
+                                f.write(f'        ```'.encode('utf-8'))
+                            else:
+                                f.write(f' {comment}'.encode('utf-8'))
+                            f.write(f'\n'.encode('utf-8'))
+                        
+                        otrs_info = task_info['otrs_info']
+                        ticket_id = otrs_info.get('id', None)
+                        exception = otrs_info.get('exception', None)
+                        if ticket_id or exception:
+                            f.write(f'- OTRS'.encode('utf-8'))
+                            ticket_status = otrs_info.get('status', None)
+                            ticket_link= otrs_info.get('link', None)
+                            ticket_title = otrs_info.get('title', '')
+                            ticket_total_time = redmine_info.get('total_time', None)
+                            if ticket_total_time:
+                                ticket_total_time = format_time(m=ticket_total_time)
+                            ticket_notes = otrs_info.get('notes', [])
+                            if ticket_id:
+                                f.write(f' ({ticket_status}, {ticket_total_time}):'.encode('utf-8'))
+                                f.write(f' [#{ticket_id} {ticket_title}]({ticket_link})\n'.encode('utf-8'))
+                            elif exception:
+                                f.write(f': Exception {exception}\n'.encode('utf-8'))
+                            for time_note in ticket_notes:
+                                if (time_note.get('type') == 'note-internal'
+                                        and time_note.get('subject', '').startswith('(')):
+                                    f.write(f"    - {time_note['created']} ({time_note['from_user']}): {time_note['subject']}\n".encode('utf-8'))
+
+                        redmine_info = task_info['redmine_info']
+                        ticket_id = redmine_info.get('id', None)
+                        exception = redmine_info.get('exception', None)
+                        if ticket_id or exception:
+                            f.write(f'- Redmine'.encode('utf-8'))
+                            ticket_status = redmine_info.get('status', None)
+                            ticket_link= redmine_info.get('link', None)
+                            ticket_title = redmine_info.get('title', '')
+                            ticket_total_time = redmine_info.get('total_time', None)
+                            if ticket_total_time:
+                                ticket_total_time = format_time(h=ticket_total_time)
+                            ticket_notes = redmine_info.get('notes', [])
+                            if ticket_id:
+                                f.write(f' ({ticket_status}, {ticket_total_time}):'.encode('utf-8'))
+                                f.write(f' [#{ticket_id} {ticket_title}]({ticket_link})\n'.encode('utf-8'))
+                            elif exception:
+                                f.write(f': Exception {exception}\n'.encode('utf-8'))
+                            for time_note in ticket_notes:
+                                f.write(f"    - {time_note['spent_on']} ({time_note['from_user']}, {format_time(h=time_note['hours'])}): {time_note['subject']}\n".encode('utf-8'))
+                        f.write(f'\n\n\n'.encode('utf-8'))
+                f.seek(0)
+                update.message.reply_document(f, filename=f'Report.md')
+            else:
+                message = ''
+                for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
+                    message += md2_prepare(f'{client}\n')
+                    for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
+                        info = task_info['otrs_info'] or task_info['redmine_info']
+                        task_id = info.get('id')
+                        if not task_id:
+                            continue
+                        task_title = info.get('title')
+                        task_link = info.get('link')
+                        message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f'\n')
+    finally:
+        os.remove(downloaded_path)
+    
 
 
 def process_attachment(update: Update, context: CallbackContext):
@@ -512,126 +661,9 @@ def process_attachment(update: Update, context: CallbackContext):
         username = f'{user.username} ({user.name}, {user.full_name})'
         update.message.reply_text(f'{username}, I cannot proccess that file for you, you have no permissions (your ID is {user.id})')
         return
-
-    attachment = update.message.document
-    if attachment.mime_type == 'text/csv':
-        downloaded_path = context.bot.getFile(attachment).download()
-        if os.path.isfile(downloaded_path):
-            try:
-                import csv
-                import tempfile
-
-                otrs_client, otrs_address = get_otrs(update, context)
-                redmine_client, redmine_address = get_redmine(update, context)
-
-                tasks = {}
-                task_number_pattern = re.compile(r'(\d+)\..*')
-                with open(downloaded_path, newline='', encoding='utf-8') as f:
-                    cr = csv.reader(f)
-                    for row in cr:
-                        date, start, end, duration, client, task, comment, tags = row
-                        if date == 'day':
-                            continue
-                            
-                        task_key = task
-                        otrs_info = {}
-                        redmine_info = {} 
-                        
-                        match = task_number_pattern.match(task)
-                        if match:
-                            task_key = match.group(1)
-                            if otrs_client and int(task_key) < 99999:
-                                otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
-                            if redmine_client and int(task_key) > 100000:
-                                redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
-                            
-
-                        task_info = tasks.setdefault(client, {}).setdefault(task_key, {})
-                        task_info['otrs_info'] = otrs_info
-                        task_info['redmine_info'] = redmine_info
-                        eternity_info = task_info.setdefault('eternity_info', {})
-
-                        eternity_info[f'{date} {start} - {end}'] = {
-                            'duration': duration,
-                            'comment': comment,
-                            'tags': tags,
-                        }
-
-                with tempfile.TemporaryFile() as f:
-                    f.write(f'# Report from {update.message.document.file_name}\n\n'.encode('utf-8'))
-
-                    for client in sorted(tasks.keys()):
-                        f.write(f'## {client or "-"}\n\n'.encode('utf-8'))
-
-                        for task_key in sorted(tasks[client].keys()):
-                            task_info = tasks[client][task_key]
-                            f.write(f'### {task_key}\n\n'.encode('utf-8'))
-
-                            eternity_info = task_info['eternity_info']
-                            f.write(f'- Eternity\n'.encode('utf-8'))
-                            for time_key in sorted(eternity_info.keys()):
-                                comment = eternity_info[time_key]['comment']
-                                tags = eternity_info[time_key]['tags']
-                                duration = eternity_info[time_key]['duration']
-                                f.write(f'    - {time_key} ({duration}, {tags}):'.encode('utf-8'))
-                                if '\n' in comment:
-                                    f.write(f'\n'.encode('utf-8'))
-                                    f.write(f'        ```'.encode('utf-8'))
-                                    for line in comment.split('\n'):
-                                        f.write(f'        {line}\n'.encode('utf-8'))
-                                    f.write(f'        ```'.encode('utf-8'))
-                                else:
-                                    f.write(f' {comment}'.encode('utf-8'))
-                                f.write(f'\n'.encode('utf-8'))
-                            
-                            otrs_info = task_info['otrs_info']
-                            ticket_id = otrs_info.get('id', None)
-                            exception = otrs_info.get('exception', None)
-                            if ticket_id or exception:
-                                f.write(f'- OTRS'.encode('utf-8'))
-                                ticket_status = otrs_info.get('status', None)
-                                ticket_link= otrs_info.get('link', None)
-                                ticket_title = otrs_info.get('title', '')
-                                ticket_total_time = redmine_info.get('total_time', None)
-                                if ticket_total_time:
-                                    ticket_total_time = format_time(m=ticket_total_time)
-                                ticket_notes = otrs_info.get('notes', [])
-                                if ticket_id:
-                                    f.write(f' ({ticket_status}, {ticket_total_time}):'.encode('utf-8'))
-                                    f.write(f' [#{ticket_id} {ticket_title}]({ticket_link})\n'.encode('utf-8'))
-                                elif exception:
-                                    f.write(f': Exception {exception}\n'.encode('utf-8'))
-                                for time_note in ticket_notes:
-                                    if (time_note.get('type') == 'note-internal'
-                                            and time_note.get('subject', '').startswith('(')):
-                                        f.write(f"    - {time_note['created']} ({time_note['from_user']}): {time_note['subject']}\n".encode('utf-8'))
-
-                            redmine_info = task_info['redmine_info']
-                            ticket_id = redmine_info.get('id', None)
-                            exception = redmine_info.get('exception', None)
-                            if ticket_id or exception:
-                                f.write(f'- Redmine'.encode('utf-8'))
-                                ticket_status = redmine_info.get('status', None)
-                                ticket_link= redmine_info.get('link', None)
-                                ticket_title = redmine_info.get('title', '')
-                                ticket_total_time = redmine_info.get('total_time', None)
-                                if ticket_total_time:
-                                    ticket_total_time = format_time(h=ticket_total_time)
-                                ticket_notes = redmine_info.get('notes', [])
-                                if ticket_id:
-                                    f.write(f' ({ticket_status}, {ticket_total_time}):'.encode('utf-8'))
-                                    f.write(f' [#{ticket_id} {ticket_title}]({ticket_link})\n'.encode('utf-8'))
-                                elif exception:
-                                    f.write(f': Exception {exception}\n'.encode('utf-8'))
-                                for time_note in ticket_notes:
-                                    f.write(f"    - {time_note['spent_on']} ({time_note['from_user']}, {format_time(h=time_note['hours'])}): {time_note['subject']}\n".encode('utf-8'))
-                            f.write(f'\n\n\n'.encode('utf-8'))
-                    f.seek(0)
-                    update.message.reply_document(f, filename=f'Report.md')
-            finally:
-                os.remove(downloaded_path)
-    else:
-        update.message.reply_text(f"I cannot process file with mime type {attachment.mime_type}")
+        
+    context.user_data['attachment'] = update.message.effective_attachment
+    context.message.reply_text("Thank's, I'll use it for you later")
 
 
 def main():
