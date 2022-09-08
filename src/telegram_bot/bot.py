@@ -682,6 +682,7 @@ def main():
     dispatcher.add_handler(CommandHandler('otrs_auth', otrs_auth))
     dispatcher.add_handler(CommandHandler('help', help))
     dispatcher.add_handler(CommandHandler('test', test))
+    dispatcher.add_handler(CommandHandler('eternity', eternity))
     dispatcher.add_handler(CallbackQueryHandler(callbacks_handler))
     dispatcher.add_handler(MessageHandler(Filters.attachment, process_attachment))
 
