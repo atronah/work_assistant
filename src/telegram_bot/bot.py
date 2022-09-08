@@ -315,7 +315,8 @@ def redmine(update, context):
     redmine_client, redmine_address = get_redmine(update, context)
     if redmine_client:
         message = ''
-        for ticket_number in ','.join(context.args).split(','):
+        issues = [int(i) for i in ','.join(context.args).split(',') if i.isdigit()]
+        for ticket_number in issues:
             ticket_info = redmine_ticket_info(redmine_client, redmine_address, ticket_number)
             if not ticket_info.get('exception'):
                 ticket_name = md2_prepare(f'#{ticket_number}: {ticket_info["title"]}')
