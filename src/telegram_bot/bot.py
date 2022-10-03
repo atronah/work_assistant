@@ -553,9 +553,10 @@ def eternity(update: Update, context: CallbackContext):
         if sent_message:
             sent_message.edit_text(message_prefix + f'reading file {source_file.file_path}')
         with open(downloaded_path, newline='', encoding='utf-8') as f:
+            lines_count = len(list(f))
+            f.seek(0)
             cr = csv.reader(f)
-            lines_count = len(list(cr))
-            cr.seek(0)
+
             task_count = 0
 
             header = next(cr)
@@ -564,7 +565,7 @@ def eternity(update: Update, context: CallbackContext):
                 update.message.reply_text(f"Unsupported csv structurem {header}")
                 return
 
-            for line_num, row in enumerate(cr):
+            for row in cr:
                 date, start, end, duration, client, task, comment, tags = row
                 if date == 'day':
                     continue
@@ -595,7 +596,7 @@ def eternity(update: Update, context: CallbackContext):
                     'tags': tags,
                 }
                 if sent_message:
-                    sent_message.edit_text(message_prefix + f'processed {line_num}/{lines_count} lines;'
+                    sent_message.edit_text(message_prefix + f'processed {cr.line_num}/{lines_count} lines;'
                                            + f'{task_count} tasks of {len(summary.keys())} clients found')
 
         if 'report' in context.args:
