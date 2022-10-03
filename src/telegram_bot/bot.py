@@ -611,20 +611,22 @@ def eternity(update: Update, context: CallbackContext):
                 task_key = task
                 otrs_info = {}
                 redmine_info = {}
+                client_info = summary.setdefault(client, {})
 
                 match = task_number_pattern.match(task)
                 if match:
                     task_key = match.group(1)
-                    if otrs_client and int(task_key) < 99999:
-                        otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
-                    if redmine_client and int(task_key) > 100000:
-                        redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
+                    if task_key not in client_info:
+                        task_info = client_info.setdefault(task_key, {})
+                        if otrs_client and int(task_key) < 99999:
+                            otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
+                            task_info['otrs_info'] = otrs_info
+                        if redmine_client and int(task_key) > 100000:
+                            redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
+                            task_info['redmine_info'] = redmine_info
+                        task_count += 1
 
-                    task_count += 1
-
-                task_info = summary.setdefault(client, {}).setdefault(task_key, {})
-                task_info['otrs_info'] = otrs_info
-                task_info['redmine_info'] = redmine_info
+                task_info = client_info.setdefault(task_key, {})
                 eternity_info = task_info.setdefault('eternity_info', {})
 
                 eternity_info[f'{date} {start} - {end}'] = {
