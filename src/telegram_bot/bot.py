@@ -597,7 +597,7 @@ def eternity(update: Update, context: CallbackContext):
                 }
                 if sent_message:
                     sent_message.edit_text(message_prefix + f'processed {cr.line_num}/{lines_count} lines\n'
-                                           + f'{task_count} tasks of {len(summary.keys())} clients found')
+                                           + f'{task_count} tasks of {len(summary.keys())} clients has been found')
 
         if 'report' in context.args:
             import tempfile
