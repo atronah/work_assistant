@@ -667,7 +667,7 @@ def eternity(update: Update, context: CallbackContext):
                     task_link = info.get('link')
                     task_status = info.get('status', None)
                     message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f' ({task_status})\n')
-                update.bot.send_message(update.effective_chat.id, message) 
+                context.bot.send_message(update.effective_chat.id, message) 
     finally:
         os.remove(downloaded_path)
 
