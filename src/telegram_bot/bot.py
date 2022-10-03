@@ -551,7 +551,7 @@ def eternity(update: Update, context: CallbackContext):
         summary = {}
         task_number_pattern = re.compile(r'(\d+)\..*')
         if sent_message:
-            sent_message.edit_text(message_prefix + f'reading file {source_file.filepath}')
+            sent_message.edit_text(message_prefix + f'reading file {source_file.file_path}')
         with open(downloaded_path, newline='', encoding='utf-8') as f:
             cr = csv.reader(f)
             lines_count = len(list(cr))
