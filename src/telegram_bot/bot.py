@@ -554,6 +554,8 @@ def eternity(update: Update, context: CallbackContext):
                 date, start, end, duration, client, task, comment, tags = row
                 if date == 'day':
                     continue
+                if 'archive' in client:
+                    continue 
 
                 task_key = task
                 otrs_info = {}
