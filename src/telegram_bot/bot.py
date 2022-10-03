@@ -590,7 +590,7 @@ def eternity(update: Update, context: CallbackContext):
         if 'report' in context.args:
             import tempfile
             with tempfile.TemporaryFile() as f:
-                f.write(f'# Report from {update.message.document.file_name}\n\n'.encode('utf-8'))
+                f.write(f'# Report from {os.path.basename(source_file.file_path)}\n\n'.encode('utf-8'))
 
                 for client in sorted(summary.keys()):
                     f.write(f'## {client or "-"}\n\n'.encode('utf-8'))
