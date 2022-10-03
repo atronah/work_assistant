@@ -514,7 +514,7 @@ def eternity(update: Update, context: CallbackContext):
 
 
     mime_type = attachment_info.get('mime_type', None)
-    if mime_type != 'text/csv':
+    if mime_type not in ('text/csv', 'text/comma-separated-values'):
         update.message.reply_text(f"'text/csv' expected, but {mime_type} got")
         return
 
