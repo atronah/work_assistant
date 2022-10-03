@@ -542,21 +542,29 @@ def eternity(update: Update, context: CallbackContext):
     try:
         import csv
 
+        message_prefix = 'processing...\n'
+        sent_message = context.bot.send_message(update.effective_chat.id, message_prefix)
+
         otrs_client, otrs_address = get_otrs(update, context)
         redmine_client, redmine_address = get_redmine(update, context)
 
         summary = {}
         task_number_pattern = re.compile(r'(\d+)\..*')
+        if sent_message:
+            sent_message.edit_text(message_prefix + f'reading file {source_file.filepath}')
         with open(downloaded_path, newline='', encoding='utf-8') as f:
             cr = csv.reader(f)
+            lines_count = len(list(cr))
+            cr.seek(0)
+            task_count = 0
+
             header = next(cr)
+
             if not (header and ','.join(header) == 'day,start time,stop time,duration,hierarchy path,activity name,note,tags'):
                 update.message.reply_text(f"Unsupported csv structurem {header}")
                 return
 
-
-
-            for row in cr:
+            for line_num, row in enumerate(cr):
                 date, start, end, duration, client, task, comment, tags = row
                 if date == 'day':
                     continue
@@ -574,7 +582,7 @@ def eternity(update: Update, context: CallbackContext):
                         otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
                     if redmine_client and int(task_key) > 100000:
                         redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
-
+                    task_count += 1
 
                 task_info = summary.setdefault(client, {}).setdefault(task_key, {})
                 task_info['otrs_info'] = otrs_info
@@ -586,9 +594,15 @@ def eternity(update: Update, context: CallbackContext):
                     'comment': comment,
                     'tags': tags,
                 }
+                if sent_message:
+                    sent_message.edit_text(message_prefix + f'processed {line_num}/{lines_count} lines;'
+                                           + f'{task_count} tasks of {len(summary.keys())} clients found')
 
         if 'report' in context.args:
             import tempfile
+
+            if sent_message:
+                sent_message.edit_text(message_prefix + f'prepare report')
             with tempfile.TemporaryFile() as f:
                 f.write(f'# Report from {os.path.basename(source_file.file_path)}\n\n'.encode('utf-8'))
 
@@ -661,6 +675,8 @@ def eternity(update: Update, context: CallbackContext):
                 f.seek(0)
                 update.message.reply_document(f, filename=f'Report.md')
         else:
+            if sent_message:
+                sent_message.edit_text(message_prefix + f'prepare statuses for you')
             for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
                 message = md2_prepare(f'{client}\n')
                 for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
