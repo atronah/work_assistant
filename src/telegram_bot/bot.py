@@ -596,7 +596,7 @@ def eternity(update: Update, context: CallbackContext):
                     'tags': tags,
                 }
                 if sent_message:
-                    sent_message.edit_text(message_prefix + f'processed {cr.line_num}/{lines_count} lines;'
+                    sent_message.edit_text(message_prefix + f'processed {cr.line_num}/{lines_count} lines\n'
                                            + f'{task_count} tasks of {len(summary.keys())} clients found')
 
         if 'report' in context.args:
