@@ -481,8 +481,21 @@ def help(update: Update, context: CallbackContext):
 
 
 def error_handler(update: Update, context: CallbackContext):
-    context.bot.send_message(update.effective_chat.id,
-                             f'Internal exception: {str(context.error)}')
+    import traceback
+    import tempfile
+
+    try:
+        caption = str(context.error)
+        traceback_info = traceback.format_exc()
+        with tempfile.TemporaryFile() as f:
+            f.write(traceback_info.encode('utf-8'))
+            f.seek(0)
+            context.bot.sendDocument(update.effective_chat.id, f,
+                                     caption=caption, filename='traceback.log')
+    except Exception as e:
+        exception_info = caption + str(e)
+        context.bot.sendMessage(update.effective_chat.id,
+                                f'Exception: {exception_info}')
     raise context.error
 
 
