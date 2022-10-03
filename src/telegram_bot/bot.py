@@ -655,9 +655,8 @@ def eternity(update: Update, context: CallbackContext):
                 f.seek(0)
                 update.message.reply_document(f, filename=f'Report.md')
         else:
-            message = ''
             for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
-                message += md2_prepare(f'{client}\n')
+                message = md2_prepare(f'{client}\n')
                 for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
                     info = task_info['otrs_info'] or task_info['redmine_info']
                     task_id = info.get('id')
@@ -667,7 +666,8 @@ def eternity(update: Update, context: CallbackContext):
                     task_link = info.get('link')
                     task_status = info.get('status', None)
                     message += md2_prepare(f'- ') + f' [#{task_id} {task_title}]({task_link})' + md2_prepare(f' ({task_status})\n')
-                context.bot.send_message(update.effective_chat.id, message) 
+                if message:
+                    context.bot.send_message(update.effective_chat.id, message) 
     finally:
         os.remove(downloaded_path)
 
