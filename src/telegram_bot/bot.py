@@ -543,7 +543,7 @@ def eternity(update: Update, context: CallbackContext):
             idx = context.args.index('-e' if '-e' in context.args else '--exclude')
             if (idx + 1) >= len(context.args):
                 return False
-            for client_to_exclude in ','.join(context[idx+1:]).split(','):
+            for client_to_exclude in ','.join(context.args[idx+1:]).split(','):
                 if re.match(rf'(?:^|.*>){client_to_exclude}', client):
                     return True
         return False
