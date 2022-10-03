@@ -499,6 +499,7 @@ def error_handler(update: Update, context: CallbackContext):
     raise context.error
 
 
+
 def test(update: Update, context: CallbackContext):
     from pprint import pformat
     import tempfile
@@ -525,6 +526,19 @@ def test(update: Update, context: CallbackContext):
 
 
 def eternity(update: Update, context: CallbackContext):
+    status_message = None
+
+    def update_status(status_info):
+        nonlocal status_message
+        try:
+            if status_message:
+                status_message.edit_text(status_info)
+            else:
+                status_message = context.bot.send_message(update.effective_chat.id, status_info)
+        except:
+            pass
+
+
     attachment_info = context.user_data.get('attachment', None)
 
     if not attachment_info:
@@ -555,16 +569,14 @@ def eternity(update: Update, context: CallbackContext):
     try:
         import csv
 
-        message_prefix = 'processing...\n'
-        sent_message = context.bot.send_message(update.effective_chat.id, message_prefix)
+        update_status('start processing...')
 
         otrs_client, otrs_address = get_otrs(update, context)
         redmine_client, redmine_address = get_redmine(update, context)
 
         summary = {}
         task_number_pattern = re.compile(r'(\d+)\..*')
-        if sent_message:
-            sent_message.edit_text(message_prefix + f'reading file {source_file.file_path}')
+        update_status( f'reading file {source_file.file_path}')
         with open(downloaded_path, newline='', encoding='utf-8') as f:
             lines_count = len(list(f))
             f.seek(0)
@@ -596,6 +608,7 @@ def eternity(update: Update, context: CallbackContext):
                         otrs_info = otrs_ticket_info(otrs_client, otrs_address, task_key)
                     if redmine_client and int(task_key) > 100000:
                         redmine_info = redmine_ticket_info(redmine_client, redmine_address, task_key)
+
                     task_count += 1
 
                 task_info = summary.setdefault(client, {}).setdefault(task_key, {})
@@ -608,15 +621,13 @@ def eternity(update: Update, context: CallbackContext):
                     'comment': comment,
                     'tags': tags,
                 }
-                if sent_message:
-                    sent_message.edit_text(message_prefix + f'processed {cr.line_num}/{lines_count} lines\n'
-                                           + f'{task_count} tasks of {len(summary.keys())} clients has been found')
+                update_status(f'processed {cr.line_num}/{lines_count} lines\n'
+                              f'{task_count} tasks of {len(summary.keys())} clients has been found')
 
         if 'report' in context.args:
             import tempfile
 
-            if sent_message:
-                sent_message.edit_text(message_prefix + f'prepare report')
+            update_status('preparing report...')
             with tempfile.TemporaryFile() as f:
                 f.write(f'# Report from {os.path.basename(source_file.file_path)}\n\n'.encode('utf-8'))
 
@@ -689,10 +700,10 @@ def eternity(update: Update, context: CallbackContext):
                 f.seek(0)
                 update.message.reply_document(f, filename=f'Report.md')
         else:
-            if sent_message:
-                sent_message.edit_text(message_prefix + f'prepare statuses for you')
+            update_status('preparing statuses for tasks of each found client...')
             for client, tasks in sorted(summary.items(), key=lambda kv: kv[0]):
                 message = md2_prepare(f'{client}\n')
+                task_count = 0
                 for task_key, task_info in sorted(tasks.items(), key=lambda kv: kv[0]):
                     info = task_info['otrs_info'] or task_info['redmine_info']
                     task_id = info.get('id')
@@ -702,9 +713,10 @@ def eternity(update: Update, context: CallbackContext):
                     task_link = info.get('link')
                     link_caption = md2_prepare(f'#{task_id} {task_title}')
                     task_status = info.get('status', None)
-                    message += md2_prepare(f'- ') + f'[#{link_caption}]({task_link})' + md2_prepare(f' ({task_status})\n')
-                if message:
-                    context.bot.send_message(update.effective_chat.id, message) 
+                    message += md2_prepare(f'- ') + f'[{link_caption}]({task_link})' + md2_prepare(f' ({task_status})\n')
+                    task_count += 1
+                if task_count > 0 and message:
+                    context.bot.send_message(update.effective_chat.id, message, parse_mode=ParseMode.MARKDOWN_V2)
     finally:
         os.remove(downloaded_path)
 
