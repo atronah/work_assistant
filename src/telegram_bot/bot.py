@@ -538,6 +538,16 @@ def eternity(update: Update, context: CallbackContext):
         except:
             pass
 
+    def skip_client(client):
+        if '-e' in context.args or '--exclude' in context.args:
+            idx = context.args.index('-e' if '-e' in context.args else '--exclude')
+            if (idx + 1) >= len(context.args):
+                return False
+            for client_to_exclude in ','.join(context[idx+1:]).split(','):
+                if re.match(rf'(?:^|.*>){client_to_exclude}', client):
+                    return True
+        return False
+
 
     attachment_info = context.user_data.get('attachment', None)
 
@@ -594,8 +604,9 @@ def eternity(update: Update, context: CallbackContext):
                 date, start, end, duration, client, task, comment, tags = row
                 if date == 'day':
                     continue
-                if 'archive' in client:
-                    continue 
+
+                if skip_client(client):
+                    continue
 
                 task_key = task
                 otrs_info = {}
