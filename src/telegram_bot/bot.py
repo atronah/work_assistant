@@ -305,7 +305,10 @@ def redmine_ticket_info(redmine_client, redmine_address, ticket_number):
     except Exception as e:
         info['exception'] = e
         info['traceback'] = traceback.format_exc()
-
+        try:
+            info['exception_string'] = str(e)
+        except:
+            info['exception_string'] = 'Unknown'
     return info
 
 
@@ -331,7 +334,7 @@ def redmine(update, context):
                 if ('-s' not in context.args):
                     message += '\n'
             else:
-                caption = f"Exception for #{ticket_number}:\n{ticket_info.get('exception')}"
+                caption = f"Exception for #{ticket_number}:\n{ticket_info.get('exception_string')}"
                 trace_log = ticket_info.get('traceback')
                 if trace_log:
                     import tempfile
@@ -423,6 +426,10 @@ def otrs_ticket_info(otrs_client, otrs_address, ticket_number):
         except Exception as e:
             info['exception'] = e
             info['traceback'] = traceback.format_exc()
+            try:
+                info['exception_string'] = str(e)
+            except:
+                info['exception_string'] = 'Unknown'
 
     return info
 
@@ -453,7 +460,7 @@ def otrs(update, context):
                 if ('-s' not in context.args):
                     message += '\n'
             else:
-                caption = f"Exception for #{num}:\n{info.get('exception')}"
+                caption = f"Exception for #{num}:\n{info.get('exception_string')}"
                 trace_log = info.get('traceback')
                 if trace_log:
                     import tempfile
@@ -669,7 +676,7 @@ def eternity(update: Update, context: CallbackContext):
 
                         otrs_info = task_info['otrs_info']
                         ticket_id = otrs_info.get('id', None)
-                        exception = otrs_info.get('exception', None)
+                        exception = otrs_info.get('exception_string', None)
                         if ticket_id or exception:
                             f.write(f'- OTRS'.encode('utf-8'))
                             ticket_status = otrs_info.get('status', None)
@@ -691,7 +698,7 @@ def eternity(update: Update, context: CallbackContext):
 
                         redmine_info = task_info['redmine_info']
                         ticket_id = redmine_info.get('id', None)
-                        exception = redmine_info.get('exception', None)
+                        exception = redmine_info.get('exception_string', None)
                         if ticket_id or exception:
                             f.write(f'- Redmine'.encode('utf-8'))
                             ticket_status = redmine_info.get('status', None)
