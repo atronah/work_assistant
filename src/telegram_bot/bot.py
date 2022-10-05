@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import collections.abc
+import datetime
 import os
 import re
 from typing import Dict, Any
@@ -534,14 +535,22 @@ def test(update: Update, context: CallbackContext):
 
 def eternity(update: Update, context: CallbackContext):
     status_message = None
+    last_status_update = None
 
-    def update_status(status_info):
+    def update_status(status_info, force=True):
         nonlocal status_message
+        nonlocal last_status_update
+
+        if not force and last_status_update and (datetime.datetime.now() - last_status_update).seconds <= 2:
+            return
+
         try:
             if status_message:
                 status_message.edit_text(status_info)
             else:
                 status_message = context.bot.send_message(update.effective_chat.id, status_info)
+
+            last_status_update = datetime.datetime.now()
         except:
             pass
 
@@ -641,7 +650,8 @@ def eternity(update: Update, context: CallbackContext):
                     'tags': tags,
                 }
                 update_status(f'processed {cr.line_num}/{lines_count} lines\n'
-                              f'{task_count} tasks of {len(summary.keys())} clients has been found')
+                              f'{task_count} tasks of {len(summary.keys())} clients has been found',
+                              False)
 
         if 'report' in context.args:
             import tempfile
