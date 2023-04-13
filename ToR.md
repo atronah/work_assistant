@@ -63,3 +63,50 @@ with code `task_code` and name `<task_name>` and link it to one or more clients 
     - `-a` - show all tasks, including `finished` (done by implementer), 
     `completed` (accepted by the client) and `paused`; otherwise show only `active`
     - `N` - show only N last tasks
+
+
+## Entities
+
+- Primary (required for MVP version)
+    - Task
+        - (pk) task_id
+        - task_code
+        - task_name
+        - status (0 - active, 1 - paused, 2 - finished, 3 - completed, 4 - archived)
+        - _(fk) user_id_
+    - Time_Interval
+        - (pk) time_interval_id
+        - (fk) task_id
+        - started
+        - ended
+    - Time_Interval_Note
+        - (pk) note_id
+        - (fk) time_interval_id
+        - note_text
+- Additional (required for full version)
+    - Client
+        - (pk) client_id
+        - client_code
+        - client_name
+    - Task_Client
+        - (pk) task_id
+        - (pk) client_id
+    - Ticket_System
+        - (pk) ticket_system_id
+        - ticket_system_code
+        - ticket_system_name
+        - ticket_system_url
+        - ticket_system_access_token - uuid of localy and separate stored credentials
+    - Ticket
+        - (pk) ticket_id
+        - (fk) ticket_system_id
+        - ticket_title
+        - ticket_url
+    - Task_Ticket
+        - (pk) task_id
+        - (pk) ticket_id
+    - User
+        - (pk) user_id
+        - user_name
+        - user_telegram_id
+        - user_telegram_nickname
