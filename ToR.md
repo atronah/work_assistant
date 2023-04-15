@@ -63,6 +63,10 @@ with code `task_code` and name `<task_name>` and link it to one or more clients 
     - `-a` - show all tasks, including `finished` (done by implementer), 
     `completed` (accepted by the client) and `paused`; otherwise show only `active`
     - `N` - show only N last tasks
+- `/config <key> [-d|-v <value>]` - Manage user configurations. Shows value of config with key `<key>`. 
+    - `<key>` - key of config
+    - `-d` - drop/delete value of config with key `<key>`
+    - `-v <value>` - set value `<value>` for config with key `<key>`
 
 
 ## Entities
@@ -110,3 +114,7 @@ with code `task_code` and name `<task_name>` and link it to one or more clients 
         - user_name
         - user_telegram_id
         - user_telegram_nickname
+    - User_Config
+        - (pk) user_id
+        - (pk) config_key
+        - config_value
