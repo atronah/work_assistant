@@ -9,3 +9,5 @@ venv
 *.data
 .DS_Store
 .python-version
+__pycache__
+
