@@ -1,11 +1,13 @@
-from .metadata import metadata_obj
-from sqlalchemy import Table, Column, Integer, String
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 
-task_table = Table(
-    "task",
-    metadata_obj,
-    Column('task_id', Integer, primary_key=True),
-    Column('task_code', String(64), nullable=False),
-    Column('task_name', String(255), nullable=False),
-    Column('task_status', Integer, nullable=False)
-)
+from .metadata import Base
+
+class Task(Base):
+    __tablename__ = 'task'
+
+    task_id: Mapped[int] = mapped_column(primary_key=True)
+
+    task_code: Mapped[str] = mapped_column(String(64))
+    task_name: Mapped[str] = mapped_column(String(255))
+    task_status: Mapped[int]

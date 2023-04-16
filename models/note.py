@@ -1,11 +1,14 @@
-from .metadata import metadata_obj
-from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from typing import Optional
 
-note_table = Table(
-    "note",
-    metadata_obj,
-    Column('note_id', Integer, primary_key=True),
-    Column('time_interval_id', ForeignKey("time_interval.time_interval_id"), nullable=True),
-    Column('task_id', ForeignKey("task.task_id"), nullable=True),
-    Column('note_text', String(4096), nullable=False)
-)
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, ForeignKey
+
+from .metadata import Base
+
+class Note(Base):
+    __tablename__ = 'note'
+
+    note_id: Mapped[int] = mapped_column(primary_key=True)
+    time_interval_id: Mapped[Optional[int]] = mapped_column(ForeignKey('time_interval.time_interval_id'))
+    task_id: Mapped[Optional[int]] = mapped_column(ForeignKey('task.task_id'))
+    note_text: Mapped[str] = mapped_column(String(4096))

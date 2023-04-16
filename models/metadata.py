@@ -1,2 +1,4 @@
-from sqlalchemy import MetaData
-metadata_obj = MetaData()
+from sqlalchemy.orm import DeclarativeBase
+
+class Base(DeclarativeBase):
+    pass
