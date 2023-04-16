@@ -76,16 +76,17 @@ with code `task_code` and name `<task_name>` and link it to one or more clients 
         - (pk) task_id
         - task_code
         - task_name
-        - status (0 - active, 1 - paused, 2 - finished, 3 - completed, 4 - archived)
+        - task_status (0 - active, 1 - paused, 2 - finished, 3 - completed, 4 - archived)
         - _(fk) user_id_
     - Time_Interval
         - (pk) time_interval_id
         - (fk) task_id
         - started
         - ended
-    - Time_Interval_Note
+    - Note
         - (pk) note_id
         - (fk) time_interval_id
+        - (fk) task_id
         - note_text
 - Additional (required for full version)
     - Client
