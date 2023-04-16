@@ -7,7 +7,8 @@ requires = [
     'google-auth-httplib2',
     'google-auth-oauthlib',
     'python-redmine',
-    'python-otrs @ git+https://github.com/ewsterrenburg/python-otrs.git@4d634a7c8ca08ab04583c29997c75bf2550bdc2a'
+    'python-otrs @ git+https://github.com/ewsterrenburg/python-otrs.git@4d634a7c8ca08ab04583c29997c75bf2550bdc2a',
+    'sqlalchemy'
 ]
 
 setup(
