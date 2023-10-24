@@ -1,2 +1,10 @@
 venv
 .idea
+.python-version
+.DS_Store
+*.data
+*.db
+*.egg-info
+__pycache__
+*.log
+*.yaml
