@@ -18,36 +18,38 @@ def run_bot():
 parser = ArgumentParser(prog='time_tracker_bot')
 
 credentials_group = parser.add_argument_group('credentials')
-credentials_group.add_argument('--encrypt-credentials', metavar='DST_FILENAME')
-credentials_group.add_argument('--username', metavar='USERNAME')
-credentials_group.add_argument('--password', metavar='PASSWORD')
-credentials_group.add_argument('--decrypt-credentials', metavar='SRC_FILENAME')
-credentials_group.add_argument('--key', metavar='KEY')
-credentials_group.add_argument('--credentials', metavar='KEY')
+credentials_group.add_argument('-e', '--encrypt-credentials', action='store_true')
+credentials_group.add_argument('-u', '--username', metavar='USERNAME')
+credentials_group.add_argument('-p', '--password', metavar='PASSWORD')
+credentials_group.add_argument('-n', '--name', metavar='NAME')
+credentials_group.add_argument('-f', '--force-rewrite-token', action='store_true')
+credentials_group.add_argument('-d', '--decrypt-credentials', action='store_true')
+credentials_group.add_argument('-k', '--key', metavar='KEY')
 running_group = parser.add_argument_group('running')
 running_group.add_argument('--run', action='store_true')
 
 args = parser.parse_args()
 
-if args.encrypt_credentials or args.decrypt_credentials:
-    from Crypto.Cipher import AES
-    from Crypto.Random import get_random_bytes
+if args.encrypt_credentials:
+    from getpass import getpass
+    from .credentials import encrypt_credentials
 
-    if args.encrypt_credentials:
-        with open(args.encrypt_credentials, 'wb') as dst:
-            key = get_random_bytes(16)
-            cipher = AES.new(key, AES.MODE_EAX)
-            encrypted, tag = cipher.encrypt_and_digest(f'{args.username} {args.password}'.encode())
-            [ dst.write(x) for x in (cipher.nonce, tag, encrypted) ]
-            print(f'Success! Your key to send bot is "{key.hex()}"')
-    elif args.decrypt_credentials:
-        with open(args.decrypt_credentials, 'rb') as src:
-            nonce, tag, encrypted = [ src.read(x) for x in (16, 16, -1) ]
-            cipher = AES.new(bytes.fromhex(args.key), AES.MODE_EAX, nonce=nonce)
-            decrypted = cipher.decrypt_and_verify(encrypted, tag)
-            print(decrypted)
-
-if args.run:
+    encrypt_credentials(args.name or input('Enter name: '),
+                        args.key or getpass('Enter key (passphrase): '),
+                        args.username or input('Enter username: '),
+                        args.password or getpass('Enter password: '),
+                        args.force_rewrite_token)
+    print('Success!')
+elif args.decrypt_credentials:
+    from getpass import getpass
+    from .credentials import decrypt_credentials
+    username, password = decrypt_credentials(
+                            args.name or input('Enter name: '),
+                            args.key or getpass('Enter key (passphrase): '))
+        
+    print(f'{username=}')
+    print(f'{password=}')
+elif args.run:
     run_bot()
 
 
