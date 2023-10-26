@@ -2,7 +2,7 @@ import os
 
 from telegram.ext import ApplicationBuilder, CommandHandler, PicklePersistence
 
-from .handlers import start_handler, stop_handler, signin_handler, signout_handler
+from .handlers import start_handler, die_handler, signin_handler, signout_handler
 from argparse import ArgumentParser
 
 
@@ -14,10 +14,9 @@ def run_bot():
     app = ApplicationBuilder().token(token).persistence(persistence).build()
     
     app.add_handler(CommandHandler('start', start_handler))
-    app.add_handler(CommandHandler('stop', stop_handler))
+    app.add_handler(CommandHandler('die', die_handler))
     app.add_handler(CommandHandler('signin', signin_handler))
     app.add_handler(CommandHandler('signout', signout_handler))
-    
 
     app.run_polling()
 
@@ -28,7 +27,7 @@ credentials_group = parser.add_argument_group('credentials')
 credentials_group.add_argument('-e', '--encrypt-credentials', action='store_true')
 credentials_group.add_argument('-u', '--username', metavar='USERNAME')
 credentials_group.add_argument('-p', '--password', metavar='PASSWORD')
-credentials_groupapp.add_handler(CommandHandler('start', start_handler))app.add_handler(CommandHandler('start', start_handler)).add_argument('-n', '--name', metavar='NAME')
+credentials_group.add_argument('-n', '--name', metavar='NAME')
 credentials_group.add_argument('-f', '--force-rewrite-token', action='store_true')
 credentials_group.add_argument('-d', '--decrypt-credentials', action='store_true')
 credentials_group.add_argument('-k', '--key', metavar='KEY')
