@@ -1,6 +1,6 @@
 import os
 
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, PicklePersistence
 
 from .handlers import start_handler, stop_handler
 from argparse import ArgumentParser
@@ -8,7 +8,11 @@ from argparse import ArgumentParser
 
 def run_bot():
     token = os.environ.get('TIME_TRACKER_BOT_TOKEN')
-    app = ApplicationBuilder().token(token).build()
+    
+    persistence = PicklePersistence(filepath='bot.data', on_flush=False)
+    
+    app = ApplicationBuilder().token(token).persistence(persistence).build()
+    
     app.add_handler(CommandHandler('start', start_handler))
     app.add_handler(CommandHandler('stop', stop_handler))
 
