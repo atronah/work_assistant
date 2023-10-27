@@ -1,4 +1,4 @@
-def get_otrs_client(endpoint, username, password, webservice_name = 'GenericTicketConnectorSOAP'):
+async def get_otrs_client(endpoint, username, password, webservice_name = 'GenericTicketConnectorSOAP'):
     from otrs.ticket.template import GenericTicketConnectorSOAP
     from otrs.client import GenericInterfaceClient
 
