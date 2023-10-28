@@ -2,7 +2,7 @@ import os
 
 from telegram.ext import ApplicationBuilder, CommandHandler, PicklePersistence
 
-from .handlers import start_handler, die_handler, signin_handler, signout_handler
+from .handlers import start_handler, die_handler, signin_handler, signout_handler, post_handler
 from argparse import ArgumentParser
 
 
@@ -17,6 +17,7 @@ def run_bot():
     app.add_handler(CommandHandler('die', die_handler))
     app.add_handler(CommandHandler('signin', signin_handler))
     app.add_handler(CommandHandler('signout', signout_handler))
+    app.add_handler(CommandHandler('post', post_handler))
 
     app.run_polling()
 

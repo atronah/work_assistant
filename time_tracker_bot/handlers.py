@@ -1,5 +1,7 @@
+import argparse
 import os
 
+from otrs.ticket.objects import Article
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -53,5 +55,39 @@ async def signout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         reply_text = 'You are NOT signed in yet'
     await update.message.reply_text(reply_text)
+
+
+async def post_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    credentials = context.user_data.setdefault('credentials', dict())
+    if not credentials:
+        await update.message.reply_text('You have to sign in before')
+        return
+
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ticket_number', metavar='TICKET_NUMBER')
+    parser.add_argument('fact_time', metavar='FACT_TIME', default=0)
+
+    message_text_lines = update.message.text.split('\n')
+
+    if len(message_text_lines) < 3:
+        raise Exception('3 or more lines required'
+                        ' (one with command, next with article title and others with article body)')
+    args = parser.parse_args(message_text_lines[0].split(' ')[1:])
+    article_title = message_text_lines[1]
+    message_body = '\n'.join(message_text_lines[2:])
+
+    new_article = Article(Subject=article_title,
+                          Body=message_body,
+                          Charset='UTF8',
+                          MimeType='text/plain',
+                          TimeUnit=args.fact_time)
+
+    otrs_client = await connect_to_otrs(context.user_data.get('credentials'))
+    otrs_client.tc.TicketUpdate(args.ticket_number, article=new_article)
+
+
+
+
 
 
