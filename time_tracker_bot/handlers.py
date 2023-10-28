@@ -49,7 +49,7 @@ async def signout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     credentials = context.user_data.setdefault('credentials', dict())
     if credentials:
         del context.user_data['credentials']
-        reply_text = 'You are signed out'
+        reply_text = 'You have been signed out'
     else:
         reply_text = 'You are NOT signed in yet'
     await update.message.reply_text(reply_text)
