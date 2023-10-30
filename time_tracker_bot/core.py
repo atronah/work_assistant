@@ -9,4 +9,4 @@ async def connect_to_otrs(credentials):
     username, password = decrypt_credentials(credentials['name'], credentials['key'])
 
     otrs_client = await get_otrs_client(endpoint, username, password)
-    return otrs_client
+    return otrs_client, endpoint

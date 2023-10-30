@@ -83,7 +83,7 @@ async def post_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                           MimeType='text/plain',
                           TimeUnit=args.fact_time)
 
-    otrs_client = await connect_to_otrs(context.user_data.get('credentials'))
+    otrs_client, _ = await connect_to_otrs(context.user_data.get('credentials'))
     otrs_client.tc.TicketUpdate(args.ticket_number, article=new_article)
 
 
