@@ -68,7 +68,7 @@ async def post_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('ticket_number', metavar='TICKET_NUMBER')
-    parser.add_argument('fact_time', metavar='FACT_TIME', default=0)
+    parser.add_argument('fact_time', metavar='FACT_TIME', nargs='?', default=0)
 
     message_text_lines = update.message.text.split('\n')
 
